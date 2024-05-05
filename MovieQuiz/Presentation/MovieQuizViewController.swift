@@ -140,7 +140,7 @@ final class MovieQuizViewController: UIViewController {
             
             // Снова включил кнопки
             
-            changeButtonState(isEnabled: true)
+            self.changeButtonState(isEnabled: true)
         }
     }
     
