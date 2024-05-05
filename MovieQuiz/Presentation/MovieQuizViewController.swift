@@ -100,6 +100,11 @@ final class MovieQuizViewController: UIViewController {
     }
 
     //MARK: - Private methods
+
+    private func changeButtonState(isEnabled: Bool) {
+        yesButton.isEnabled = isEnabled
+		noButton.isEnabled = isEnabled
+	}
     
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
         let questionStep = QuizStepViewModel(
@@ -127,16 +132,15 @@ final class MovieQuizViewController: UIViewController {
         // Отключил кнопки, так как при нажатии во время ожидания
         // загрузки следующего вопроса они сразу засчитывают ответ
         // Это почему то не учтено в спринте
+
+        changeButtonState(isEnabled: false)
         
-        yesButton.isEnabled = false
-        noButton.isEnabled = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.showNextQuestionOrResult()
             
             // Снова включил кнопки
             
-            self.yesButton.isEnabled = true
-            self.noButton.isEnabled = true
+            changeButtonState(isEnabled: true)
         }
     }
     
