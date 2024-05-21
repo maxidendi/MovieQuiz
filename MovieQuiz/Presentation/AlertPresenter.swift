@@ -25,7 +25,7 @@ class AlertPresenter: MovieQuizViewControllerDelegate {
         
         alert.addAction(action)
         
-        self.movieQuiz?.present(alert, animated: true, completion: nil)
+        movieQuiz?.present(alert, animated: true, completion: nil)
     }
 }
 

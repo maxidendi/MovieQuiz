@@ -18,6 +18,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
     private var alertDelegate: MovieQuizViewControllerDelegate?
+    private var statisticService: StatisticService?
     
     //MARK: - Overrides of Life Cycle Methods
     
@@ -36,6 +37,11 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         self.questionFactory = questionFactory
         
         self.questionFactory?.requestNextQuestion()
+        
+        statisticService = StatisticServiceImplementation()
+        
+        //для обнуления статистики
+        //UserDefaults.standard.reset()
     }
     
     //MARK: - QuestionFactoryDelegate
@@ -99,28 +105,28 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         imageView.layer.masksToBounds = true
         imageView.layer.borderWidth = 8
         imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
-        
-        // Отключил кнопки, так как при нажатии во время ожидания
-        // загрузки следующего вопроса они сразу засчитывают ответ
-        // Это почему то не учтено в спринте
 
         changeButtonState(isEnabled: false)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {[weak self] in
-            guard let self else {return}
+            guard let self else {
+                return
+            }
             self.showNextQuestionOrResult()
-            
-            // Снова включил кнопки
-            
             self.changeButtonState(isEnabled: true)
         }
     }
     
     func showNextQuestionOrResult() {
         if currentQuestionIndex == questionsAmount {
-            let text = correctAnswers == questionsAmount ?
-            "Поздравляем, вы ответили на 10 из 10!" :
-            "Вы ответили на \(correctAnswers) из 10, попробуйте еще раз!"
+            statisticService?.store(correct: correctAnswers, total: questionsAmount)
+            let text =
+                    """
+                    Ваше результат: \(correctAnswers)/10
+                    Количество сыгранных квизов: \(statisticService?.gamesCount ?? 0)
+                    Рекорд: \(statisticService?.bestGame.correct ?? 0)/10 (\(statisticService?.bestGame.date.dateTimeString ?? ""))
+                    Средняя точность: \(String(format: "%.2f", statisticService?.totalAccuracy ?? 0))%
+                    """
             let alertModel = AlertModel(
             title: "Этот раунд окончен!",
             message: text,
@@ -138,6 +144,8 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         }
     }
 }
+
+
 
 
 
@@ -207,3 +215,132 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
  Вопрос: Рейтинг этого фильма больше чем 6?
  Ответ: НЕТ
 */
+
+
+/*
+var documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+let moviesTop = "top250MoviesIMDB.json"
+documentsURL.appendPathComponent(moviesTop)
+let string = try? String(contentsOf: documentsURL)
+guard let data = string?.data(using: .utf8) else {
+    return
+}
+
+let result = try? JSONDecoder().decode(Top.self, from: data)
+print(result ?? "")
+
+
+//FileManager Task
+
+var documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+print(documentsURL)
+let fileName = "text.swift"
+
+documentsURL.appendPathComponent(fileName)
+print(documentsURL)
+
+print(FileManager.default.fileExists(atPath: documentsURL.path))
+if !FileManager.default.fileExists(atPath: documentsURL.path) {
+    let hello = "Hello World! How are you?"
+    let data = hello.data(using: .utf8)
+    FileManager.default.createFile(atPath: documentsURL.path, contents: data)
+}
+print(FileManager.default.fileExists(atPath: documentsURL.path))
+try? print(String(contentsOf: documentsURL))
+try? FileManager.default.removeItem(at: documentsURL)
+
+//Error HandLing
+
+enum FileManagerError: Error {
+    case fileDoesntExist
+}
+func string(from documentsURL: URL) throws -> String {
+    if !FileManager.default.fileExists(atPath: documentsURL.path) {
+        throw FileManagerError.fileDoesntExist
+    }
+    return try String(contentsOf: documentsURL)
+}
+
+var str = ""
+
+do {
+    try print(str = string(from: documentsURL))
+} catch FileManagerError.fileDoesntExist {
+    print("Файл по адресу \(documentsURL.path) не существует")
+} catch {
+    print("Неизвестная ошибка чтения из файла \(error)")
+}
+
+//JSON
+
+var jsonURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+let jsonName = "inception.json"
+jsonURL.appendPathComponent(jsonName)
+let jsonString = try? String(contentsOf: jsonURL)
+
+guard let data = jsonString?.data(using: .utf8) else {
+    return
+}
+do {
+    let json = try  JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+} catch {
+    print("Failed to parse: \(error)")
+}
+
+func getMovie(form jsonString: String) -> Movie? {
+    var movie: Movie? = nil
+    
+    do {
+        guard let data = jsonString.data(using: .utf8) else {
+            return nil
+        }
+        let jsonMovie = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+        guard let jsonMovie = jsonMovie,
+              let id = jsonMovie["id"] as? String,
+              let title = jsonMovie["title"] as? String,
+              let year = jsonMovie["year"] as? Int,
+              let image = jsonMovie["image"] as? String,
+              let releaseDate = jsonMovie["releaseDate"] as? String,
+              let runtime = jsonMovie["runtime"] as? Int,
+              let directors = jsonMovie["directors"] as? String,
+              let actorList = jsonMovie["actorList"] as? [Any]
+        else {
+            return nil
+        }
+        var actors: [Actor] = []
+        
+        for actor in actorList {
+            guard let actor = actor as? [String: Any],
+                  let id = actor["id"] as? String,
+                  let image = actor["image"] as? String,
+                  let name = actor["name"] as? String,
+                  let asCharacter = actor["asCharacter"] as? String else {
+                return nil
+            }
+            let mainActor = Actor(id: id,
+                                  image: image,
+                                  name: name,
+                                  asCharacter: asCharacter)
+            actors.append(mainActor)
+        }
+        movie = Movie(id: id,
+                      title: title,
+                      year: year,
+                      image: image,
+                      releaseDate: releaseDate,
+                      runtimeMin: runtime,
+                      directors: directors,
+                      actorList: actors)
+    } catch {
+        print("Some error: \(error)")
+    }
+    return movie
+}
+
+do {
+    let movie = try JSONDecoder().decode(Movie.self, from: data)
+} catch {
+    print("Failed to parse: \(error)")
+}
+ */
+
