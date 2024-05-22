@@ -1,6 +1,6 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController {
+final class MovieQuizViewController: UIViewController, MovieQuizViewControllerProtocol, QuestionFactoryDelegate {
     
     // MARK: - IB Outlets
 
@@ -12,71 +12,13 @@ final class MovieQuizViewController: UIViewController {
     
     //MARK: - Private variables
     
-    private var currentQuestionIndex = 0
-    private var correctAnswers = 0
-    
-    //MARK: - Private Struct's
-    
-    private struct QuizStepViewModel {
-        let image: UIImage
-        let question: String
-        let questionNumber: String
-    }
-    
-    private struct QuizResultViewModel {
-        let title: String
-        let text: String
-        let buttonText: String
-    }
-    
-    private struct QuizQuestion {
-        let image: String
-        let text: String
-        let correctAnswer: Bool
-    }
-    
-    private let questions: [QuizQuestion] = [
-        QuizQuestion(
-            image: "The Godfather",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "The Dark Knight",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "Kill Bill",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "The Avengers",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "Deadpool",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "The Green Knight",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "Old",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false),
-        QuizQuestion(
-            image: "The Ice Age Adventures of Buck Wild",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false),
-        QuizQuestion(
-            image: "Tesla",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false),
-        QuizQuestion(
-            image: "Vivarium",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false)
-    ]
+    private var currentQuestionIndex: Int = 1
+    private var correctAnswers: Int = 0
+    private let questionsAmount: Int = 10
+    private var questionFactory: QuestionFactoryProtocol?
+    private var currentQuestion: QuizQuestion?
+    private var alertDelegate: MovieQuizViewControllerDelegate?
+    private var statisticService: StatisticService?
     
     //MARK: - Overrides of Life Cycle Methods
     
@@ -85,19 +27,52 @@ final class MovieQuizViewController: UIViewController {
         imageView.layer.cornerRadius = 20
         noButton.isExclusiveTouch = true
         yesButton.isExclusiveTouch = true
-        let currentQuestion = questions[currentQuestionIndex]
-        show(quiz: convert(model: currentQuestion))
+        
+        let alertDelegate = AlertPresenter()
+        alertDelegate.movieQuiz = self
+        self.alertDelegate = alertDelegate
+        
+        let questionFactory = QuestionFactory()
+        questionFactory.delegate = self
+        self.questionFactory = questionFactory
+        
+        self.questionFactory?.requestNextQuestion()
+        
+        statisticService = StatisticServiceImplementation()
+        
+        //для обнуления статистики
+        //UserDefaults.standard.reset()
+    }
+    
+    //MARK: - QuestionFactoryDelegate
+    
+    func didReceiveNextQuestion(question: QuizQuestion?) {
+        guard let question else {
+            return
+        }
+        currentQuestion = question
+        let viewModel = convert(model: question)
+        
+        DispatchQueue.main.async {[weak self] in
+            self?.show(quiz: viewModel)
+        }
     }
     
     //MARK: - IB Actions
     
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
-        let actualAnswer = questions[currentQuestionIndex].correctAnswer
+        guard let currentQuestion else {
+            return
+        }
+        let actualAnswer = currentQuestion.correctAnswer
         showAnswerResult(isCorrect: true == actualAnswer)
     }
     
     @IBAction private func noButtonClicked(_ sender: UIButton) {
-        let actualAnswer = questions[currentQuestionIndex].correctAnswer
+        guard let currentQuestion else {
+            return
+        }
+        let actualAnswer = currentQuestion.correctAnswer
         showAnswerResult(isCorrect: false == actualAnswer)
     }
 
@@ -112,7 +87,7 @@ final class MovieQuizViewController: UIViewController {
         let questionStep = QuizStepViewModel(
             image: UIImage(named: model.image) ?? UIImage(),
             question: model.text,
-            questionNumber: "\(currentQuestionIndex + 1)/\(questions.count)")
+            questionNumber: "\(currentQuestionIndex)/\(questionsAmount)")
         return questionStep
     }
     
@@ -130,53 +105,52 @@ final class MovieQuizViewController: UIViewController {
         imageView.layer.masksToBounds = true
         imageView.layer.borderWidth = 8
         imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
-        
-        // Отключил кнопки, так как при нажатии во время ожидания
-        // загрузки следующего вопроса они сразу засчитывают ответ
-        // Это почему то не учтено в спринте
 
         changeButtonState(isEnabled: false)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {[weak self] in
+            guard let self else {
+                return
+            }
             self.showNextQuestionOrResult()
-            
-            // Снова включил кнопки
-            
             self.changeButtonState(isEnabled: true)
         }
     }
     
-    private func show(quiz result: QuizResultViewModel) {
-        let alert = UIAlertController(
-            title: result.title,
-            message: result.text,
-            preferredStyle: .alert)
-        let action = UIAlertAction(
-            title: result.buttonText,
-            style: .default) {_ in
-                self.currentQuestionIndex = 0
-                self.correctAnswers = 0
-                let newQuiz = self.convert(model: self.questions[self.currentQuestionIndex])
-            self.show(quiz: newQuiz)}
-        alert.addAction(action)
-        self.present(alert, animated: true, completion: nil)
-    }
-    
-    private func showNextQuestionOrResult() {
-        if currentQuestionIndex == questions.count - 1 {
-            let quizResult = QuizResultViewModel(
-                title: "Этот раунд окончен!",
-                text: "Ваш результат: \(correctAnswers)/10",
-                buttonText: "Сыграть еще раз")
-            show(quiz: quizResult)
+    func showNextQuestionOrResult() {
+        if currentQuestionIndex == questionsAmount {
+            statisticService?.store(correct: correctAnswers, total: questionsAmount)
+            let text =
+                    """
+                    Ваше результат: \(correctAnswers)/10
+                    Количество сыгранных квизов: \(statisticService?.gamesCount ?? 0)
+                    Рекорд: \(statisticService?.bestGame.correct ?? 0)/10 (\(statisticService?.bestGame.date.dateTimeString ?? ""))
+                    Средняя точность: \(String(format: "%.2f", statisticService?.totalAccuracy ?? 0))%
+                    """
+            let alertModel = AlertModel(
+            title: "Этот раунд окончен!",
+            message: text,
+            buttonText: "Сыграть еще раз",
+            complition: {[weak self] _ in
+                self?.currentQuestionIndex = 1
+                self?.correctAnswers = 0
+                self?.questionFactory?.requestNextQuestion()
+            })
+            alertDelegate?.showResult(alertModel: alertModel)
             } else {
                 currentQuestionIndex += 1
-                let nextQuestion = questions[currentQuestionIndex]
-                let viewModel = convert(model: nextQuestion)
-                show(quiz: viewModel)
+                questionFactory?.requestNextQuestion()
+                    
         }
     }
 }
+
+
+
+
+
+
+
 
 /*
  Mock-данные
@@ -241,3 +215,132 @@ final class MovieQuizViewController: UIViewController {
  Вопрос: Рейтинг этого фильма больше чем 6?
  Ответ: НЕТ
 */
+
+
+/*
+var documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+let moviesTop = "top250MoviesIMDB.json"
+documentsURL.appendPathComponent(moviesTop)
+let string = try? String(contentsOf: documentsURL)
+guard let data = string?.data(using: .utf8) else {
+    return
+}
+
+let result = try? JSONDecoder().decode(Top.self, from: data)
+print(result ?? "")
+
+
+//FileManager Task
+
+var documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+print(documentsURL)
+let fileName = "text.swift"
+
+documentsURL.appendPathComponent(fileName)
+print(documentsURL)
+
+print(FileManager.default.fileExists(atPath: documentsURL.path))
+if !FileManager.default.fileExists(atPath: documentsURL.path) {
+    let hello = "Hello World! How are you?"
+    let data = hello.data(using: .utf8)
+    FileManager.default.createFile(atPath: documentsURL.path, contents: data)
+}
+print(FileManager.default.fileExists(atPath: documentsURL.path))
+try? print(String(contentsOf: documentsURL))
+try? FileManager.default.removeItem(at: documentsURL)
+
+//Error HandLing
+
+enum FileManagerError: Error {
+    case fileDoesntExist
+}
+func string(from documentsURL: URL) throws -> String {
+    if !FileManager.default.fileExists(atPath: documentsURL.path) {
+        throw FileManagerError.fileDoesntExist
+    }
+    return try String(contentsOf: documentsURL)
+}
+
+var str = ""
+
+do {
+    try print(str = string(from: documentsURL))
+} catch FileManagerError.fileDoesntExist {
+    print("Файл по адресу \(documentsURL.path) не существует")
+} catch {
+    print("Неизвестная ошибка чтения из файла \(error)")
+}
+
+//JSON
+
+var jsonURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+let jsonName = "inception.json"
+jsonURL.appendPathComponent(jsonName)
+let jsonString = try? String(contentsOf: jsonURL)
+
+guard let data = jsonString?.data(using: .utf8) else {
+    return
+}
+do {
+    let json = try  JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+} catch {
+    print("Failed to parse: \(error)")
+}
+
+func getMovie(form jsonString: String) -> Movie? {
+    var movie: Movie? = nil
+    
+    do {
+        guard let data = jsonString.data(using: .utf8) else {
+            return nil
+        }
+        let jsonMovie = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+        guard let jsonMovie = jsonMovie,
+              let id = jsonMovie["id"] as? String,
+              let title = jsonMovie["title"] as? String,
+              let year = jsonMovie["year"] as? Int,
+              let image = jsonMovie["image"] as? String,
+              let releaseDate = jsonMovie["releaseDate"] as? String,
+              let runtime = jsonMovie["runtime"] as? Int,
+              let directors = jsonMovie["directors"] as? String,
+              let actorList = jsonMovie["actorList"] as? [Any]
+        else {
+            return nil
+        }
+        var actors: [Actor] = []
+        
+        for actor in actorList {
+            guard let actor = actor as? [String: Any],
+                  let id = actor["id"] as? String,
+                  let image = actor["image"] as? String,
+                  let name = actor["name"] as? String,
+                  let asCharacter = actor["asCharacter"] as? String else {
+                return nil
+            }
+            let mainActor = Actor(id: id,
+                                  image: image,
+                                  name: name,
+                                  asCharacter: asCharacter)
+            actors.append(mainActor)
+        }
+        movie = Movie(id: id,
+                      title: title,
+                      year: year,
+                      image: image,
+                      releaseDate: releaseDate,
+                      runtimeMin: runtime,
+                      directors: directors,
+                      actorList: actors)
+    } catch {
+        print("Some error: \(error)")
+    }
+    return movie
+}
+
+do {
+    let movie = try JSONDecoder().decode(Movie.self, from: data)
+} catch {
+    print("Failed to parse: \(error)")
+}
+ */
+
