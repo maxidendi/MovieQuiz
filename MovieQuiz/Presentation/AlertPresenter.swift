@@ -5,12 +5,11 @@
 //  Created by Денис Максимов on 17.05.2024.
 //
 
-import Foundation
 import UIKit
 
 class AlertPresenter: MovieQuizViewControllerDelegate {
     
-    weak var movieQuiz: MovieQuizViewControllerProtocol?
+    weak var viewController: MovieQuizViewControllerProtocol?
     
     func showResult(alertModel: AlertModel) {
         
@@ -20,12 +19,11 @@ class AlertPresenter: MovieQuizViewControllerDelegate {
             preferredStyle: .alert)
         let action = UIAlertAction(
             title: alertModel.buttonText,
-            style: .default,
-            handler: alertModel.complition)
+            style: .default) { _ in alertModel.complition()}
         
         alert.addAction(action)
         
-        movieQuiz?.present(alert, animated: true, completion: nil)
+        viewController?.present(alert, animated: true, completion: nil)
     }
 }
 

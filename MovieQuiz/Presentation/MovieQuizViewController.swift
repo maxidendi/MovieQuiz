@@ -29,7 +29,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         yesButton.isExclusiveTouch = true
         
         let alertDelegate = AlertPresenter()
-        alertDelegate.movieQuiz = self
+        alertDelegate.viewController = self
         self.alertDelegate = alertDelegate
         
         let questionFactory = QuestionFactory()
@@ -131,7 +131,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
             title: "Этот раунд окончен!",
             message: text,
             buttonText: "Сыграть еще раз",
-            complition: {[weak self] _ in
+            complition: {[weak self] in
                 self?.currentQuestionIndex = 1
                 self?.correctAnswers = 0
                 self?.questionFactory?.requestNextQuestion()

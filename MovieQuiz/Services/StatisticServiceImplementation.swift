@@ -69,14 +69,8 @@ final class StatisticServiceImplementation: StatisticService {
         
         gamesCount += 1
         
-        if bestGame.isBetterThan(record: newGame) {
-            return
-        } else {
-            guard let data = try? JSONEncoder().encode(newGame) else {
-                print("Невозможно обновить рекорд")
-                return
-            }
-            userDefaults.set(data, forKey: Keys.bestGame.rawValue)
+        if newGame.isBetterThan(record: bestGame) {
+            bestGame = newGame
         }
        
     }
