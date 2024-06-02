@@ -8,7 +8,9 @@
 import Foundation
 
 final class StatisticServiceImplementation: StatisticService {
-
+    
+    //MARK: - Properties
+    
     private let userDefaults = UserDefaults.standard
     
     var totalAccuracy: Double {
@@ -53,6 +55,8 @@ final class StatisticServiceImplementation: StatisticService {
     private enum Keys: String {
         case correct, total, bestGame, gamesCount
     }
+    
+    //MARK: - Methods
     
     func store(correct count: Int, total amount: Int) {
         

@@ -8,8 +8,12 @@
 import UIKit
 
 class AlertPresenter: MovieQuizViewControllerDelegate {
-    
+
+    //MARK: - Properties
+
     weak var viewController: MovieQuizViewControllerProtocol?
+    
+    //MARK: - Methods
     
     func showResult(alertModel: AlertModel) {
         
