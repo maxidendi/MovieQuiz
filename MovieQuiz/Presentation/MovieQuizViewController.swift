@@ -9,8 +9,9 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     @IBOutlet private weak var counterLabel: UILabel!
     @IBOutlet private weak var yesButton: UIButton!
     @IBOutlet private weak var noButton: UIButton!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
-    //MARK: - Private variables
+    //MARK: - Properties
     
     private var currentQuestionIndex: Int = 1
     private var correctAnswers: Int = 0
@@ -29,22 +30,24 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         yesButton.isExclusiveTouch = true
         
         let alertDelegate = AlertPresenter()
-        alertDelegate.movieQuiz = self
+        alertDelegate.viewController = self
         self.alertDelegate = alertDelegate
         
         let questionFactory = QuestionFactory()
         questionFactory.delegate = self
+        questionFactory.movieLoader = MoviesLoader()
         self.questionFactory = questionFactory
         
-        self.questionFactory?.requestNextQuestion()
-        
         statisticService = StatisticServiceImplementation()
+        
+        showLoadingIndicator()
+        self.questionFactory?.loadData()
         
         //для обнуления статистики
         //UserDefaults.standard.reset()
     }
     
-    //MARK: - QuestionFactoryDelegate
+    //MARK: - QuestionFactoryDelegates
     
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question else {
@@ -52,11 +55,19 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         }
         currentQuestion = question
         let viewModel = convert(model: question)
-        
-        DispatchQueue.main.async {[weak self] in
-            self?.show(quiz: viewModel)
-        }
+        self.show(quiz: viewModel)
+
     }
+    
+    func didLoadDataFromServer() {
+        hideLoadingIndicator()
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        showNetworkError(message: error.localizedDescription)
+    }
+    
     
     //MARK: - IB Actions
     
@@ -76,7 +87,33 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         showAnswerResult(isCorrect: false == actualAnswer)
     }
 
-    //MARK: - Private methods
+    //MARK: - Methods
+    
+    private func showLoadingIndicator() {
+        activityIndicator.isHidden = false
+        activityIndicator.startAnimating()
+    }
+    
+    private func hideLoadingIndicator() {
+        activityIndicator.isHidden = true
+        activityIndicator.stopAnimating()
+    }
+    
+    private func showNetworkError(message: String) {
+        self.hideLoadingIndicator()
+        
+        let alertError = AlertModel(
+            title: "Ошибка",
+            message: message,
+            buttonText: "Попробовать снова") {[weak self] in
+                guard let self else { return }
+                self.currentQuestionIndex = 1
+                self.correctAnswers = 0
+                self.showLoadingIndicator()
+                self.questionFactory?.loadData()
+            }
+        alertDelegate?.showResult(alertModel: alertError)
+    }
 
     private func changeButtonState(isEnabled: Bool) {
         yesButton.isEnabled = isEnabled
@@ -85,7 +122,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
         let questionStep = QuizStepViewModel(
-            image: UIImage(named: model.image) ?? UIImage(),
+            image: UIImage(data: model.image) ?? UIImage(),
             question: model.text,
             questionNumber: "\(currentQuestionIndex)/\(questionsAmount)")
         return questionStep
@@ -109,9 +146,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         changeButtonState(isEnabled: false)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {[weak self] in
-            guard let self else {
-                return
-            }
+            guard let self else { return }
             self.showNextQuestionOrResult()
             self.changeButtonState(isEnabled: true)
         }
@@ -131,10 +166,11 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
             title: "Этот раунд окончен!",
             message: text,
             buttonText: "Сыграть еще раз",
-            complition: {[weak self] _ in
-                self?.currentQuestionIndex = 1
-                self?.correctAnswers = 0
-                self?.questionFactory?.requestNextQuestion()
+            complition: {[weak self] in
+                guard let self else { return }
+                self.currentQuestionIndex = 1
+                self.correctAnswers = 0
+                self.questionFactory?.requestNextQuestion()
             })
             alertDelegate?.showResult(alertModel: alertModel)
             } else {

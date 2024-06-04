@@ -105,6 +105,10 @@
                                     </stackView>
                                 </subviews>
                             </stackView>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="40d-5c-4MM">
+                                <rect key="frame" x="197" y="438" width="20" height="20"/>
+                                <color key="color" name="YP Black"/>
+                            </activityIndicatorView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" name="YP Black"/>
@@ -112,10 +116,13 @@
                             <constraint firstItem="WBR-XQ-hvL" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="1Rt-tx-MN8"/>
                             <constraint firstItem="WBR-XQ-hvL" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="10" id="59E-r0-1La"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="WBR-XQ-hvL" secondAttribute="trailing" constant="20" id="alk-TN-Zmx"/>
+                            <constraint firstItem="40d-5c-4MM" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="h8o-s2-HHm"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="WBR-XQ-hvL" secondAttribute="bottom" id="k4k-VI-YZX"/>
+                            <constraint firstItem="40d-5c-4MM" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="rFN-zP-M7s"/>
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="activityIndicator" destination="40d-5c-4MM" id="OOB-aY-PoT"/>
                         <outlet property="counterLabel" destination="cbO-gL-gaF" id="PUg-K2-wW4"/>
                         <outlet property="imageView" destination="gHs-tS-PIl" id="RWf-By-Bgt"/>
                         <outlet property="noButton" destination="XzM-M0-edp" id="xhW-DK-t97"/>

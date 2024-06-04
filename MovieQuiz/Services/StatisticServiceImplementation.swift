@@ -8,7 +8,9 @@
 import Foundation
 
 final class StatisticServiceImplementation: StatisticService {
-
+    
+    //MARK: - Properties
+    
     private let userDefaults = UserDefaults.standard
     
     var totalAccuracy: Double {
@@ -54,6 +56,8 @@ final class StatisticServiceImplementation: StatisticService {
         case correct, total, bestGame, gamesCount
     }
     
+    //MARK: - Methods
+    
     func store(correct count: Int, total amount: Int) {
         
         let newGame = GameRecord(correct: count, total: amount, date: Date())
@@ -69,14 +73,8 @@ final class StatisticServiceImplementation: StatisticService {
         
         gamesCount += 1
         
-        if bestGame.isBetterThan(record: newGame) {
-            return
-        } else {
-            guard let data = try? JSONEncoder().encode(newGame) else {
-                print("Невозможно обновить рекорд")
-                return
-            }
-            userDefaults.set(data, forKey: Keys.bestGame.rawValue)
+        if newGame.isBetterThan(record: bestGame) {
+            bestGame = newGame
         }
        
     }
