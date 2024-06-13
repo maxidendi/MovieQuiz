@@ -1,10 +1,3 @@
-//
-//  ClearStat + Extension.swift
-//  MovieQuiz
-//
-//  Created by Денис Максимов on 21.05.2024.
-//
-
 import Foundation
 
 extension UserDefaults {

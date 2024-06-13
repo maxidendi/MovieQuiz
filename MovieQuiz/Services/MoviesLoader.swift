@@ -1,10 +1,3 @@
-//
-//  MoviesLoader.swift
-//  MovieQuiz
-//
-//  Created by Денис Максимов on 31.05.2024.
-//
-
 import Foundation
 
 protocol MoviesLoading {
@@ -28,7 +21,11 @@ struct MoviesLoader: MoviesLoading {
             case .success(let data):
                 do {
                     let mostPopularMovies = try JSONDecoder().decode(MostPopularMovies.self, from: data)
-                    handler(.success(mostPopularMovies))
+                    if !mostPopularMovies.errorMessage.isEmpty {
+                        handler(.failure(NetworkErrors.invalidUrlError(mostPopularMovies.errorMessage)))
+                    } else {
+                        handler(.success(mostPopularMovies))
+                    }
                 } catch {
                     handler(.failure(error))
                 }

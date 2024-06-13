@@ -1,14 +1,7 @@
-//
-//  QuestionFactory.swift
-//  MovieQuiz
-//
-//  Created by Денис Максимов on 16.05.2024.
-//
-
 import Foundation
 
 final class QuestionFactory: QuestionFactoryProtocol {
-    
+ 
     //MARK: - Properties
     
     var movieLoader: MoviesLoading?
@@ -45,12 +38,11 @@ final class QuestionFactory: QuestionFactoryProtocol {
             do {
                 imageData = try Data(contentsOf: movie.resizedImageURL)
             } catch {
-                print("Failed to load image")
+                DispatchQueue.main.async {[weak self] in
+                    guard let self else { return }
+                    self.delegate?.didFailToLoadData(with: NetworkErrors.loadImageError("Невозможно загрузить постер фильма \(movie.title)"))}
+                return
             }
-            
-            //Взял на себя смелость немного разнообразаить процесс игры
-            //и рандомно вызывать вопросы "больше" или "меньше" рейтинг данного фильма
-            
             let rating = Float(movie.rating) ?? 0
             let questionRating = roundf(Float.random(in: 8.0...9.0) * 10) / 10
             let questionHigherOrLower = Bool.random()

@@ -40,7 +40,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         
         statisticService = StatisticServiceImplementation()
         
-        showLoadingIndicator()
+        activityIndicator.startAnimating()
         self.questionFactory?.loadData()
         
         //для обнуления статистики
@@ -60,14 +60,39 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     }
     
     func didLoadDataFromServer() {
-        hideLoadingIndicator()
+        activityIndicator.stopAnimating()
         questionFactory?.requestNextQuestion()
     }
     
     func didFailToLoadData(with error: Error) {
-        showNetworkError(message: error.localizedDescription)
+        let completion = {[weak self] in
+            guard let self else { return }
+            self.currentQuestionIndex = 1
+            self.correctAnswers = 0
+            self.activityIndicator.startAnimating()
+            self.questionFactory?.loadData()
+        }
+        guard let error = error as? NetworkErrors else {
+            return showNetworkError(
+                message: error.localizedDescription,
+                errorCompletion: completion)
+        }
+        switch error {
+        case .codeError:
+            showNetworkError(
+                message: error.localizedDescription,
+                errorCompletion: completion)
+        case .invalidUrlError(_):
+            showNetworkError(
+                message: error.localizedDescription,
+                errorCompletion: completion)
+        case .loadImageError(_):
+            showNetworkError(
+                message: error.localizedDescription)
+            {[weak self] in self?.questionFactory?.requestNextQuestion()}
+        }
+        
     }
-    
     
     //MARK: - IB Actions
     
@@ -89,29 +114,14 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
 
     //MARK: - Methods
     
-    private func showLoadingIndicator() {
-        activityIndicator.isHidden = false
-        activityIndicator.startAnimating()
-    }
-    
-    private func hideLoadingIndicator() {
-        activityIndicator.isHidden = true
+    private func showNetworkError(message: String, errorCompletion: @escaping () -> Void) {
         activityIndicator.stopAnimating()
-    }
-    
-    private func showNetworkError(message: String) {
-        self.hideLoadingIndicator()
         
         let alertError = AlertModel(
             title: "Ошибка",
             message: message,
-            buttonText: "Попробовать снова") {[weak self] in
-                guard let self else { return }
-                self.currentQuestionIndex = 1
-                self.correctAnswers = 0
-                self.showLoadingIndicator()
-                self.questionFactory?.loadData()
-            }
+            buttonText: "Попробовать снова",
+            complition: errorCompletion)
         alertDelegate?.showResult(alertModel: alertError)
     }
 
@@ -132,7 +142,9 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         imageView.image = step.image
         textLabel.text = step.question
         counterLabel.text = step.questionNumber
-        imageView.layer.borderColor = UIColor.ypBlack.cgColor
+        imageView.layer.borderWidth = 0
+        changeButtonState(isEnabled: true)
+        
     }
     
     private func showAnswerResult(isCorrect: Bool) {
@@ -148,7 +160,6 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {[weak self] in
             guard let self else { return }
             self.showNextQuestionOrResult()
-            self.changeButtonState(isEnabled: true)
         }
     }
     
@@ -180,203 +191,4 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         }
     }
 }
-
-
-
-
-
-
-
-
-/*
- Mock-данные
- 
- 
- Картинка: The Godfather
- Настоящий рейтинг: 9,2
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: ДА
- 
- 
- Картинка: The Dark Knight
- Настоящий рейтинг: 9
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: ДА
- 
- 
- Картинка: Kill Bill
- Настоящий рейтинг: 8,1
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: ДА
- 
- 
- Картинка: The Avengers
- Настоящий рейтинг: 8
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: ДА
- 
- 
- Картинка: Deadpool
- Настоящий рейтинг: 8
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: ДА
- 
- 
- Картинка: The Green Knight
- Настоящий рейтинг: 6,6
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: ДА
- 
- 
- Картинка: Old
- Настоящий рейтинг: 5,8
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: НЕТ
- 
- 
- Картинка: The Ice Age Adventures of Buck Wild
- Настоящий рейтинг: 4,3
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: НЕТ
- 
- 
- Картинка: Tesla
- Настоящий рейтинг: 5,1
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: НЕТ
- 
- 
- Картинка: Vivarium
- Настоящий рейтинг: 5,8
- Вопрос: Рейтинг этого фильма больше чем 6?
- Ответ: НЕТ
-*/
-
-
-/*
-var documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-let moviesTop = "top250MoviesIMDB.json"
-documentsURL.appendPathComponent(moviesTop)
-let string = try? String(contentsOf: documentsURL)
-guard let data = string?.data(using: .utf8) else {
-    return
-}
-
-let result = try? JSONDecoder().decode(Top.self, from: data)
-print(result ?? "")
-
-
-//FileManager Task
-
-var documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-print(documentsURL)
-let fileName = "text.swift"
-
-documentsURL.appendPathComponent(fileName)
-print(documentsURL)
-
-print(FileManager.default.fileExists(atPath: documentsURL.path))
-if !FileManager.default.fileExists(atPath: documentsURL.path) {
-    let hello = "Hello World! How are you?"
-    let data = hello.data(using: .utf8)
-    FileManager.default.createFile(atPath: documentsURL.path, contents: data)
-}
-print(FileManager.default.fileExists(atPath: documentsURL.path))
-try? print(String(contentsOf: documentsURL))
-try? FileManager.default.removeItem(at: documentsURL)
-
-//Error HandLing
-
-enum FileManagerError: Error {
-    case fileDoesntExist
-}
-func string(from documentsURL: URL) throws -> String {
-    if !FileManager.default.fileExists(atPath: documentsURL.path) {
-        throw FileManagerError.fileDoesntExist
-    }
-    return try String(contentsOf: documentsURL)
-}
-
-var str = ""
-
-do {
-    try print(str = string(from: documentsURL))
-} catch FileManagerError.fileDoesntExist {
-    print("Файл по адресу \(documentsURL.path) не существует")
-} catch {
-    print("Неизвестная ошибка чтения из файла \(error)")
-}
-
-//JSON
-
-var jsonURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-let jsonName = "inception.json"
-jsonURL.appendPathComponent(jsonName)
-let jsonString = try? String(contentsOf: jsonURL)
-
-guard let data = jsonString?.data(using: .utf8) else {
-    return
-}
-do {
-    let json = try  JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-} catch {
-    print("Failed to parse: \(error)")
-}
-
-func getMovie(form jsonString: String) -> Movie? {
-    var movie: Movie? = nil
-    
-    do {
-        guard let data = jsonString.data(using: .utf8) else {
-            return nil
-        }
-        let jsonMovie = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-        guard let jsonMovie = jsonMovie,
-              let id = jsonMovie["id"] as? String,
-              let title = jsonMovie["title"] as? String,
-              let year = jsonMovie["year"] as? Int,
-              let image = jsonMovie["image"] as? String,
-              let releaseDate = jsonMovie["releaseDate"] as? String,
-              let runtime = jsonMovie["runtime"] as? Int,
-              let directors = jsonMovie["directors"] as? String,
-              let actorList = jsonMovie["actorList"] as? [Any]
-        else {
-            return nil
-        }
-        var actors: [Actor] = []
-        
-        for actor in actorList {
-            guard let actor = actor as? [String: Any],
-                  let id = actor["id"] as? String,
-                  let image = actor["image"] as? String,
-                  let name = actor["name"] as? String,
-                  let asCharacter = actor["asCharacter"] as? String else {
-                return nil
-            }
-            let mainActor = Actor(id: id,
-                                  image: image,
-                                  name: name,
-                                  asCharacter: asCharacter)
-            actors.append(mainActor)
-        }
-        movie = Movie(id: id,
-                      title: title,
-                      year: year,
-                      image: image,
-                      releaseDate: releaseDate,
-                      runtimeMin: runtime,
-                      directors: directors,
-                      actorList: actors)
-    } catch {
-        print("Some error: \(error)")
-    }
-    return movie
-}
-
-do {
-    let movie = try JSONDecoder().decode(Movie.self, from: data)
-} catch {
-    print("Failed to parse: \(error)")
-}
- */
 
