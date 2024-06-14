@@ -7,11 +7,12 @@ enum NetworkErrors: LocalizedError {
     var errorDescription: String?{
         switch self{
         case .codeError:
-            return localizedDescription
-        case .invalidUrlError(let error):
-            return error
-        case .loadImageError(let error):
-            return error
+            localizedDescription
+        case .invalidUrlError(let description):
+            description
+        case .loadImageError(let description):
+            description
         }
     }
 }
+

@@ -6,7 +6,15 @@ protocol MoviesLoading {
 
 struct MoviesLoader: MoviesLoading {
     
-    private let netwokClient = NetworkClient()
+    //MARK: - NetworkClient
+    
+    private let netwokClient: NetworkRouting
+    
+    init(netwokClient: NetworkRouting = NetworkClient()) {
+        self.netwokClient = netwokClient
+    }
+    
+    //MARK: - URL
     
     private var mostPopulerMoviesURL: URL {
         guard let url = URL(string: "https://tv-api.com/en/API/Top250Movies/k_zcuw1ytf") else {
