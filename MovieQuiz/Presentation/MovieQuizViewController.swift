@@ -13,9 +13,10 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     
     //MARK: - Properties
     
-    private var currentQuestionIndex: Int = 1
+//    private var currentQuestionIndex: Int = 1
     private var correctAnswers: Int = 0
-    private let questionsAmount: Int = 10
+//    private let questionsAmount: Int = 10
+    private let presenter = MovieQuizPresenter()
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
     private var alertDelegate: MovieQuizViewControllerDelegate?
@@ -54,7 +55,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
             return
         }
         currentQuestion = question
-        let viewModel = convert(model: question)
+        let viewModel = presenter.convert(model: question)
         self.show(quiz: viewModel)
 
     }
@@ -67,7 +68,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     func didFailToLoadData(with error: Error) {
         let completion = {[weak self] in
             guard let self else { return }
-            self.currentQuestionIndex = 1
+            self.presenter.resetQuestionIndex()
             self.correctAnswers = 0
             self.activityIndicator.startAnimating()
             self.questionFactory?.loadData()
@@ -78,11 +79,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
                 errorCompletion: completion)
         }
         switch error {
-        case .codeError:
-            showNetworkError(
-                message: error.localizedDescription,
-                errorCompletion: completion)
-        case .invalidUrlError(_):
+        case .codeError, .invalidUrlError(_):
             showNetworkError(
                 message: error.localizedDescription,
                 errorCompletion: completion)
@@ -130,13 +127,13 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
 		noButton.isEnabled = isEnabled
 	}
     
-    private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        let questionStep = QuizStepViewModel(
-            image: UIImage(data: model.image) ?? UIImage(),
-            question: model.text,
-            questionNumber: "\(currentQuestionIndex)/\(questionsAmount)")
-        return questionStep
-    }
+//    private func convert(model: QuizQuestion) -> QuizStepViewModel {
+//        let questionStep = QuizStepViewModel(
+//            image: UIImage(data: model.image) ?? UIImage(),
+//            question: model.text,
+//            questionNumber: "\(currentQuestionIndex)/\(questionsAmount)")
+//        return questionStep
+//    }
     
     private func show(quiz step: QuizStepViewModel) {
         imageView.image = step.image
@@ -164,11 +161,11 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     }
     
     func showNextQuestionOrResult() {
-        if currentQuestionIndex == questionsAmount {
-            statisticService?.store(correct: correctAnswers, total: questionsAmount)
+        if presenter.isLastQuestion() {
+            statisticService?.store(correct: correctAnswers, total: presenter.questionsAmount)
             let text =
                     """
-                    Ваше результат: \(correctAnswers)/10
+                    Ваше результат: \(correctAnswers)/\(presenter.questionsAmount)
                     Количество сыгранных квизов: \(statisticService?.gamesCount ?? 0)
                     Рекорд: \(statisticService?.bestGame.correct ?? 0)/10 (\(statisticService?.bestGame.date.dateTimeString ?? ""))
                     Средняя точность: \(String(format: "%.2f", statisticService?.totalAccuracy ?? 0))%
@@ -179,13 +176,13 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
             buttonText: "Сыграть еще раз",
             complition: {[weak self] in
                 guard let self else { return }
-                self.currentQuestionIndex = 1
+                self.presenter.resetQuestionIndex()
                 self.correctAnswers = 0
                 self.questionFactory?.requestNextQuestion()
             })
             alertDelegate?.showResult(alertModel: alertModel)
             } else {
-                currentQuestionIndex += 1
+                presenter.switchToNextQuestion()
                 questionFactory?.requestNextQuestion()
                     
         }

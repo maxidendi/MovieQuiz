@@ -23,6 +23,8 @@ struct MoviesLoader: MoviesLoading {
         return url
     }
     
+    //MARK: - Methods
+    
     func loadMovies(handler: @escaping (Result<MostPopularMovies, Error>) -> Void) {
         netwokClient.fetch(url: mostPopulerMoviesURL) { result in
             switch result {

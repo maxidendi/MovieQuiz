@@ -5,6 +5,8 @@ protocol NetworkRouting {
 }
 
 struct NetworkClient: NetworkRouting {
+    
+    //MARK: - Methods
   
     func fetch(url: URL, handler: @escaping (Result<Data, Error>) -> Void) -> Void {
         let request = URLRequest(url: url)
