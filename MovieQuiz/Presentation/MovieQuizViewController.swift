@@ -13,9 +13,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     
     //MARK: - Properties
     
-//    private var currentQuestionIndex: Int = 1
     private var correctAnswers: Int = 0
-//    private let questionsAmount: Int = 10
     private let presenter = MovieQuizPresenter()
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
@@ -38,6 +36,8 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         questionFactory.delegate = self
         questionFactory.movieLoader = MoviesLoader()
         self.questionFactory = questionFactory
+        
+        presenter.viewController = self
         
         statisticService = StatisticServiceImplementation()
         
@@ -94,19 +94,23 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     //MARK: - IB Actions
     
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
-        guard let currentQuestion else {
-            return
-        }
-        let actualAnswer = currentQuestion.correctAnswer
-        showAnswerResult(isCorrect: true == actualAnswer)
+//        guard let currentQuestion else {
+//            return
+//        }
+//        let actualAnswer = currentQuestion.correctAnswer
+//        showAnswerResult(isCorrect: true == actualAnswer)
+        presenter.currentQuestion = currentQuestion
+        presenter.yesButtonClicked()
     }
     
     @IBAction private func noButtonClicked(_ sender: UIButton) {
-        guard let currentQuestion else {
-            return
-        }
-        let actualAnswer = currentQuestion.correctAnswer
-        showAnswerResult(isCorrect: false == actualAnswer)
+//        guard let currentQuestion else {
+//            return
+//        }
+//        let actualAnswer = currentQuestion.correctAnswer
+//        showAnswerResult(isCorrect: false == actualAnswer)
+        presenter.currentQuestion = currentQuestion
+        presenter.noButtonClicked()
     }
 
     //MARK: - Methods
@@ -126,15 +130,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         yesButton.isEnabled = isEnabled
 		noButton.isEnabled = isEnabled
 	}
-    
-//    private func convert(model: QuizQuestion) -> QuizStepViewModel {
-//        let questionStep = QuizStepViewModel(
-//            image: UIImage(data: model.image) ?? UIImage(),
-//            question: model.text,
-//            questionNumber: "\(currentQuestionIndex)/\(questionsAmount)")
-//        return questionStep
-//    }
-    
+
     private func show(quiz step: QuizStepViewModel) {
         imageView.image = step.image
         textLabel.text = step.question
@@ -144,7 +140,7 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         
     }
     
-    private func showAnswerResult(isCorrect: Bool) {
+    func showAnswerResult(isCorrect: Bool) {
         if isCorrect {
             correctAnswers += 1
         }
