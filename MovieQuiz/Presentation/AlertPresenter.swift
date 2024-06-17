@@ -3,12 +3,14 @@ import UIKit
 final class AlertPresenter: MovieQuizViewControllerDelegate {
 
     //MARK: - Properties
-
-    weak var viewController: MovieQuizViewControllerProtocol?
+    
+    static var shared: AlertPresenter = AlertPresenter()
+    
+    init() {}
     
     //MARK: - Methods
     
-    func showResult(alertModel: AlertModel) {
+    func showResult(alertModel: AlertModel, view: UIViewController) {
         
         let alert = UIAlertController(
             title: alertModel.title,
@@ -20,7 +22,7 @@ final class AlertPresenter: MovieQuizViewControllerDelegate {
         
         alert.addAction(action)
         
-        viewController?.present(alert, animated: true, completion: nil)
+        view.present(alert, animated: true, completion: nil)
     }
 }
 

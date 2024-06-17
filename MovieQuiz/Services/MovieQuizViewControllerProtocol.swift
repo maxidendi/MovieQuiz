@@ -1,5 +1,5 @@
 import UIKit
 
-protocol MovieQuizViewControllerProtocol: UIViewController {
-    func showNextQuestionOrResult()
-}
+//protocol MovieQuizViewControllerProtocol: UIViewController {
+//    func showNextQuestionOrResult()
+//}

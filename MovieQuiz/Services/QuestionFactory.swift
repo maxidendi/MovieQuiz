@@ -1,14 +1,18 @@
 import Foundation
 
 final class QuestionFactory: QuestionFactoryProtocol {
- 
+
     //MARK: - Properties
     
     var movieLoader: MoviesLoading?
-    
     weak var delegate: QuestionFactoryDelegate?
-    
     private var movies: [MostPopularMovie] = []
+    
+    init(movieLoader: MoviesLoading?,
+         delegate: QuestionFactoryDelegate?) {
+        self.movieLoader = movieLoader
+        self.delegate = delegate
+    }
     
     //MARK: - Methods
 
