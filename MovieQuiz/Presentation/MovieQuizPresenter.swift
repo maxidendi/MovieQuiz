@@ -16,10 +16,11 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
         self.viewController = viewController
         statisticService = StatisticService()
         questionFactory = QuestionFactory(
-            movieLoader: MoviesLoader(),
+            movieLoader: MoviesLoader(), 
+            imageLoader: ImageLoader(),
             delegate: self)
-        questionFactory?.loadData()
         viewController?.showLoadingIndicator()
+        questionFactory?.loadData()
     }
     
     //MARK: - QuestionFactoryDelegate
@@ -28,11 +29,11 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
         guard let question else { return }
         currentQuestion = question
         let viewModel = convert(model: question)
+        viewController?.hideLoadingIndicator()
         viewController?.show(quiz: viewModel)
     }
     
     func didLoadDataFromServer() {
-        viewController?.hideLoadingIndicator()
         questionFactory?.requestNextQuestion()
     }
     
@@ -45,20 +46,22 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
             self.questionFactory?.loadData()
         }
         guard let error = error as? NetworkErrors else {
-            viewController?.showNetworkError(
+            showNetworkError(
                 message: error.localizedDescription,
                 errorCompletion: completion)
             return
         }
         switch error {
         case .codeError, .invalidUrlError(_):
-            viewController?.showNetworkError(
+            showNetworkError(
                 message: error.localizedDescription,
                 errorCompletion: completion)
         case .loadImageError(_):
-            viewController?.showNetworkError(
-                message: error.localizedDescription)
-            {[weak self] in self?.questionFactory?.requestNextQuestion()}
+            showNetworkError(
+                message: error.localizedDescription) {[weak self] in
+                self?.viewController?.showLoadingIndicator()
+                self?.questionFactory?.requestNextQuestion()
+            }
         }
         
     }
@@ -95,6 +98,16 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
         return questionStep
     }
     
+    private func showNetworkError(message: String, errorCompletion: @escaping () -> Void) {
+        viewController?.hideLoadingIndicator()
+        let alertError = AlertError(
+            title: "Ошибка",
+            message: message,
+            buttonText: "Попробовать снова",
+            complition: errorCompletion)
+        viewController?.showError(model: alertError)
+    }
+    
     private func proceedWithAnswer(isCorrect: Bool) {
         if isCorrect {
             correctAnswers += 1
@@ -102,6 +115,7 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
         viewController?.highlightImageBorder(isCorrect: isCorrect)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {[weak self] in
             guard let self else { return }
+            self.viewController?.showLoadingIndicator()
             self.proceedNextQuestionOrResult()
         }
     }
@@ -117,17 +131,21 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
                     Рекорд: \(bestGame.correct)/\(bestGame.total) (\(bestGame.date.dateTimeString))
                     Средняя точность: \(String(format: "%.2f", statisticService.totalAccuracy))%
                     """
-            let alertModel = AlertModel(
-            title: "Этот раунд окончен!",
-            message: text,
-            buttonText: "Сыграть еще раз",
-            complition: {[weak self] in
+            let completionRestart = {[weak self] in
                 guard let self else { return }
                 self.resetQuestionIndex()
                 self.correctAnswers = 0
-                self.questionFactory?.requestNextQuestion()
-            })
-            viewController?.showAlert(model: alertModel)
+                self.questionFactory?.requestNextQuestion()}
+            let alertResult = AlertResult(
+            title: "Этот раунд окончен!",
+            message: text,
+            buttonRestart: "Сыграть еще раз",
+            buttonReset: "Сброс статистики",
+            complitionRestart: completionRestart,
+            complitionReset: {
+                completionRestart()
+                UserDefaults.standard.reset()})
+            viewController?.showResult(model: alertResult)
             } else {
                 switchToNextQuestion()
                 questionFactory?.requestNextQuestion()

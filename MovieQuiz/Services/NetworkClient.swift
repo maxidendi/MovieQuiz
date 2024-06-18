@@ -9,8 +9,7 @@ struct NetworkClient: NetworkRouting {
     //MARK: - Methods
   
     func fetch(url: URL, handler: @escaping (Result<Data, Error>) -> Void) -> Void {
-        let request = URLRequest(url: url)
-        
+        let request = URLRequest(url: url, timeoutInterval: 5)
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 handler(.failure(error))

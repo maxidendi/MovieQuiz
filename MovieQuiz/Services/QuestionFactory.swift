@@ -4,13 +4,16 @@ final class QuestionFactory: QuestionFactoryProtocol {
 
     //MARK: - Properties
     
-    var movieLoader: MoviesLoading?
-    weak var delegate: QuestionFactoryDelegate?
+    private var movieLoader: MoviesLoading?
+    private var imageLoader: ImageLoading?
+    private weak var delegate: QuestionFactoryDelegate?
     private var movies: [MostPopularMovie] = []
     
     init(movieLoader: MoviesLoading?,
+         imageLoader: ImageLoading?,
          delegate: QuestionFactoryDelegate?) {
         self.movieLoader = movieLoader
+        self.imageLoader = imageLoader
         self.delegate = delegate
     }
     
@@ -37,46 +40,97 @@ final class QuestionFactory: QuestionFactoryProtocol {
             let index = (0..<self.movies.count).randomElement() ?? 0
             guard let movie = self.movies[safe: index] else { return }
             
-            var imageData = Data()
-            
-            do {
-                imageData = try Data(contentsOf: movie.resizedImageURL)
-            } catch {
-                DispatchQueue.main.async {[weak self] in
-                    guard let self else { return }
-                    self.delegate?.didFailToLoadData(with: NetworkErrors.loadImageError("Невозможно загрузить постер фильма \(movie.title)"))}
-                return
-            }
-            let rating = Float(movie.rating) ?? 0
-            let questionRating = roundf(Float.random(in: 8.0...9.0) * 10) / 10
-            let questionHigherOrLower = Bool.random()
-            let text = questionHigherOrLower ? "Рейтинг этого фильма больше чем \(questionRating)?" :
-                                               "Рейтинг этого фильма меньше чем \(questionRating)?"
-            let correctAnswer = questionHigherOrLower ? rating > questionRating :
-                                                        rating < questionRating
-            
-            let question = QuizQuestion(
-                image: imageData,
-                text: text,
-                correctAnswer: correctAnswer)
-            
-            DispatchQueue.main.async {[weak self] in
-                guard let self else { return }
-                self.delegate?.didReceiveNextQuestion(question: question)
+            self.imageLoader?.loadImage(imageURL: movie.imageURL) {[weak self] result in
+                switch result {
+                case .success(let data):
+                    let rating = Float(movie.rating) ?? 0
+                    let questionRating = roundf(Float.random(in: 8.0...9.0) * 10) / 10
+                    let questionHigherOrLower = Bool.random()
+                    let text = questionHigherOrLower ? "Рейтинг этого фильма больше чем \(questionRating)?" :
+                                                       "Рейтинг этого фильма меньше чем \(questionRating)?"
+                    let correctAnswer = questionHigherOrLower ? rating > questionRating :
+                                                                rating < questionRating
+                    
+                    let question = QuizQuestion(
+                        image: data,
+                        text: text,
+                        correctAnswer: correctAnswer)
+                    
+                    DispatchQueue.main.async {[weak self] in
+                        guard let self else { return }
+                        self.delegate?.didReceiveNextQuestion(question: question)
+                    }
+                case .failure(_):
+                    DispatchQueue.main.async {[weak self] in
+                        guard let self else { return }
+                        self.delegate?.didFailToLoadData(with: NetworkErrors.loadImageError(
+                            "Невозможно загрузить фильм \(movie.title)"))
+                    }
+                }
             }
         }
     }
 }
 
 
-
-
-
-
-
-
-
-
+//func requestNextQuestion() {
+//    DispatchQueue.global().async { [weak self] in
+//        guard let self else { return }
+//        let index = (0..<self.movies.count).randomElement() ?? 0
+//        guard let movie = self.movies[safe: index] else { return }
+//        
+//        var imageData = Data()
+//        imageLoader?.loadImage(imageURL: movie.imageURL) {[weak self] result in
+//            switch result {
+//            case .success(let data):
+//                let imageData = data
+//                print("1")
+//            case .failure(_):
+//                DispatchQueue.main.async {[weak self] in
+//                    guard let self else { return }
+//                    self.delegate?.didFailToLoadData(with: NetworkErrors.loadImageError(
+//                        "Невозможно загрузить постер фильма \(movie.title)"))
+//                }
+//                return
+//            }
+//        }
+//        
+//        
+////            do {
+////                imageData = try Data(contentsOf: movie.resizedImageURL)
+////            } catch {
+////                DispatchQueue.main.async {[weak self] in
+////                    guard let self else { return }
+////                    self.delegate?.didFailToLoadData(with: NetworkErrors.loadImageError("Невозможно загрузить постер фильма \(movie.title)"))}
+////                return
+////            }
+//        let rating = Float(movie.rating) ?? 0
+//        let questionRating = roundf(Float.random(in: 8.0...9.0) * 10) / 10
+//        let questionHigherOrLower = Bool.random()
+//        let text = questionHigherOrLower ? "Рейтинг этого фильма больше чем \(questionRating)?" :
+//                                           "Рейтинг этого фильма меньше чем \(questionRating)?"
+//        let correctAnswer = questionHigherOrLower ? rating > questionRating :
+//                                                    rating < questionRating
+//        
+//        let question = QuizQuestion(
+//            image: imageData,
+//            text: text,
+//            correctAnswer: correctAnswer)
+//        print("2")
+//        
+//        DispatchQueue.main.async {[weak self] in
+//            guard let self else { return }
+//            self.delegate?.didReceiveNextQuestion(question: question)
+//        }
+//    }
+//}
+//
+//
+//
+//
+//
+//
+//
 //    private let questions: [QuizQuestion] = [
 //        QuizQuestion(
 //            image: "The Godfather",

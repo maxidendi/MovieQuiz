@@ -23,11 +23,7 @@ final class MovieQuizViewController: UIViewController {
         imageView.layer.cornerRadius = 20
         noButton.isExclusiveTouch = true
         yesButton.isExclusiveTouch = true
-                
         presenter = MovieQuizPresenter(viewController: self)
-        
-        //для обнуления статистики
-        //UserDefaults.standard.reset()
     }
 
     //MARK: - IB Actions
@@ -51,20 +47,14 @@ final class MovieQuizViewController: UIViewController {
         activityIndicator.stopAnimating()
     }
     
-    func showAlert(model: AlertModel) {
+    func showError(model: AlertError) {
+        alertPresenter.showError(alertModel: model, view: self)
+    }
+    
+    func showResult(model: AlertResult) {
         alertPresenter.showResult(alertModel: model, view: self)
     }
 
-    func showNetworkError(message: String, errorCompletion: @escaping () -> Void) {
-        hideLoadingIndicator()
-        let alertError = AlertModel(
-            title: "Ошибка",
-            message: message,
-            buttonText: "Попробовать снова",
-            complition: errorCompletion)
-        showAlert(model: alertError)
-    }
-    
     private func changeButtonState(isEnabled: Bool) {
         yesButton.isEnabled = isEnabled
         noButton.isEnabled = isEnabled
