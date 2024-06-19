@@ -20,12 +20,12 @@ final class MovieQuizUITests: XCTestCase {
     }
     
     func testYesButton() {
-        sleep(1)
+        sleep(3)
         let firstPoster = app.images["Poster"]
         let firstPosterData = firstPoster.screenshot().pngRepresentation
 
         app.buttons["Yes"].tap()
-        sleep(1)
+        sleep(3)
         let secondPoster = app.images["Poster"]
         let secondPosterData = secondPoster.screenshot().pngRepresentation
 
@@ -36,11 +36,11 @@ final class MovieQuizUITests: XCTestCase {
     }
     
     func testNoButton() {
-        sleep(1)
+        sleep(3)
         let firstPosterData = app.images["Poster"].screenshot().pngRepresentation
         
         app.buttons["No"].tap()
-        sleep(1)
+        sleep(3)
         
         let secondPosterData = app.images["Poster"].screenshot().pngRepresentation
         

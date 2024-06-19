@@ -36,8 +36,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3FE011542C1B24CD00E20FB9"
-               BuildableName = "MovieQuizTests.xctest"
-               BlueprintName = "MovieQuizTests"
+               BuildableName = "MovieQuizUnitTests.xctest"
+               BlueprintName = "MovieQuizUnitTests"
                ReferencedContainer = "container:MovieQuiz.xcodeproj">
             </BuildableReference>
          </TestableReference>
