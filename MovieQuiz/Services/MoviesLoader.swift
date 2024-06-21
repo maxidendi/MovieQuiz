@@ -1,10 +1,3 @@
-//
-//  MoviesLoader.swift
-//  MovieQuiz
-//
-//  Created by Денис Максимов on 31.05.2024.
-//
-
 import Foundation
 
 protocol MoviesLoading {
@@ -13,7 +6,15 @@ protocol MoviesLoading {
 
 struct MoviesLoader: MoviesLoading {
     
-    private let netwokClient = NetworkClient()
+    //MARK: - NetworkClient
+    
+    private let netwokClient: NetworkRouting
+    
+    init(netwokClient: NetworkRouting = NetworkClient()) {
+        self.netwokClient = netwokClient
+    }
+    
+    //MARK: - URL
     
     private var mostPopulerMoviesURL: URL {
         guard let url = URL(string: "https://tv-api.com/en/API/Top250Movies/k_zcuw1ytf") else {
@@ -22,13 +23,19 @@ struct MoviesLoader: MoviesLoading {
         return url
     }
     
+    //MARK: - Methods
+    
     func loadMovies(handler: @escaping (Result<MostPopularMovies, Error>) -> Void) {
         netwokClient.fetch(url: mostPopulerMoviesURL) { result in
             switch result {
             case .success(let data):
                 do {
                     let mostPopularMovies = try JSONDecoder().decode(MostPopularMovies.self, from: data)
-                    handler(.success(mostPopularMovies))
+                    if !mostPopularMovies.errorMessage.isEmpty {
+                        handler(.failure(NetworkErrors.invalidUrlError(mostPopularMovies.errorMessage)))
+                    } else {
+                        handler(.success(mostPopularMovies))
+                    }
                 } catch {
                     handler(.failure(error))
                 }
